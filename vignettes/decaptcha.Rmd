@@ -1,0 +1,43 @@
+---
+title: "Vignette Title"
+author: "Vignette Author"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(tree)
+library(captchatjsp)
+
+path <- 'inst/treino/'
+d <- ler(baixar()); desenhar(d)
+classificar(picotar(limpar(d)), 'qmiqx', path)
+```
+
+### Atualizar modelo
+
+```{r}
+d_treino <- carregar_treino('inst/treino/')
+d_treino$letra <- as.factor(d_treino$letra)
+
+modelo <- tree(letra ~ ., data = select(d_treino, -arq))
+cv_tree <- cv.tree(modelo)
+plot(cv_tree)
+modelo <- prune.tree(modelo, best = 25)
+
+save(d_treino, file = 'data/d_treino.rda')
+save(modelo, file = 'data/modelo.rda')
+devtools::document(); devtools::install()
+```
+
+### Prever!
+```{r}
+d <- ler(baixar()); desenhar(d); prever(d)
+```
+
