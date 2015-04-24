@@ -115,9 +115,9 @@ carregar_treino <- function(path) {
     })
   )
   if(is_windows()) { # se o sistema operacional for windows...
-    letra_regex <- '.+\\/([a-z])'
+    letra_regex <- '.+\\/([a-zA-Z])'
   } else {
-    letra_regex <- '.+//([a-z])'
+    letra_regex <- '.+//([a-zA-Z])'
   }
   treino$letra <- stringr::str_match(treino$arq, letra_regex)[, 2]
   d_treino <- treino %>%
@@ -138,21 +138,19 @@ carregar_treino <- function(path) {
 carregar_teste <- function(d) {
   d <- picotar(limpar(d))
   d_teste <- d %>%
-    group_by(grupo) %>%
-    mutate(x = x - min(x), y = y - min(y), um = 1) %>%
-    ungroup %>%
-    mutate(xs = sprintf('x%02d', x), ys = sprintf('y%02d', y)) %>%
-    unite(xy, xs, ys, sep = '_') %>%
-    select(grupo, xy, um) %>%
-    spread(xy, um, fill = 0) %>%
-    select(-grupo)
+    dplyr::group_by(grupo) %>%
+    dplyr::mutate(x = x - min(x), y = y - min(y), um = 1) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(xs = sprintf('x%02d', x), ys = sprintf('y%02d', y)) %>%
+    tidyr::unite(xy, xs, ys, sep = '_') %>%
+    dplyr::select(grupo, xy, um) %>%
+    tidyr::spread(xy, um, fill = 0) %>%
+    dplyr::select(-grupo)
   d_teste
 }
 
 #' @export
-prever <- function(d) {
-  data(d_treino)
-  data(modelo)
+prever <- function(d, d_treino, modelo) {
   teste <- carregar_teste(d)
   nm <- names(select(d_treino, -arq, -letra))
   teste[, nm[!nm %in% names(teste)]] <- 0

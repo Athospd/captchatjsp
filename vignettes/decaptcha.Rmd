@@ -31,8 +31,18 @@ desenhar(d)
 
 #### Base de treino
 ```{r}
-d_treino <- carregar_treino('inst/treino/')
-d_treino$letra <- as.factor(d_treino$letra)
+set.seed(123)
+d_min <- carregar_treino('C:/Users/Athos/Downloads/treino/minusculo/')
+d_min$letra <- as.factor(d_min$letra)
+linhas_treino <- sample(nrow(d_min), 0.8*nrow(d_min))
+d_treino_min <- d_min[linhas_treino,]
+d_teste_min <- d_min[-linhas_treino,]
+
+d_mai <- carregar_treino('C:/Users/Athos/Downloads/treino/maiusculo/')
+d_mai$letra <- as.factor(d_mai$letra)
+d_treino_mai <- d_mai[linhas_treino,]
+d_teste_mai <- d_mai[-linhas_treino,]
+
 ```
 
 #### Tree
@@ -48,22 +58,34 @@ devtools::document(); devtools::install()
 
 #### Random Forest
 ```{r}
+library(doParallel)
+cl <- makePSOCKcluster(2)
+registerDoParallel(cl)
+
 set.seed(19910401)
-modelo_rf <- train(letra ~ ., 
-                   data = select(d_treino, -arq),
-                   method = "rf",
-                   tuneLength = 6)
+modelo_rf_min <- train(letra ~ ., 
+                       data = select(d_treino_min, -arq),
+                       method = "rf",
+                       tuneLength = 2)
 
-plot(modelo_rf)
-modelo <- modelo_rf$finalModel
-save(modelo, file = 'data/modelo.rda')
+modelo_rf_mai <- train(letra ~ ., 
+                       data = select(d_treino_mai, -arq),
+                       method = "rf",
+                       tuneLength = 2)
 
+modelo_min <- modelo_rf_min$finalModel
+modelo_mai <- modelo_rf_mai$finalModel
+
+d <- ler(baixar())
 teste <- carregar_teste(d)
 nm <- names(select(d_treino, -arq, -letra))
 teste[, nm[!nm %in% names(teste)]] <- 0
-predicao <- predict(modelo, teste, type = "class")
+
+predicao <- predict(modelo_mai, d_teste_mai, type = "class")
+
 r <- paste0(predicao, collapse = "")
 r
+desenhar(d)
 ```
 
 ### Prever!
