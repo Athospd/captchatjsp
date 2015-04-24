@@ -154,10 +154,8 @@ prever <- function(d, d_treino, modelo) {
   teste <- carregar_teste(d)
   nm <- names(select(d_treino, -arq, -letra))
   teste[, nm[!nm %in% names(teste)]] <- 0
-  predicao <- predict(modelo, teste)
-  r <- paste0(apply(predicao, 1, function(x) {
-    names(x[which(x == max(x))[1]])
-  }), collapse = '')
+  predicao <- predict(modelo, teste, type = 'class')
+  r <- paste0(as.character(predicao), collapse='')
   r
 }
 

@@ -15,6 +15,7 @@ library(tidyr)
 library(tree)
 library(captchatjsp)
 library(caret)
+library(randomForest)
 ```
 
 ### Mostrando
@@ -66,22 +67,53 @@ set.seed(19910401)
 modelo_rf_min <- train(letra ~ ., 
                        data = select(d_treino_min, -arq),
                        method = "rf",
-                       tuneLength = 2)
+                       tuneLength = 6)
 
 modelo_rf_mai <- train(letra ~ ., 
                        data = select(d_treino_mai, -arq),
                        method = "rf",
-                       tuneLength = 2)
+                       tuneLength = 6)
 
 modelo_min <- modelo_rf_min$finalModel
 modelo_mai <- modelo_rf_mai$finalModel
+
+d_teste_min$predicao <- predict(modelo_min, d_teste_min, type = "class")
+
+d_teste_mai$predicao <- predict(modelo_mai, d_teste_mai, type = "class")
+d_teste_mai <- d_teste_mai %>%
+  mutate(letra = tolower(letra),
+         predicao = tolower(predicao))
+
+x <- modelo_min$confusion %>% diag
+w <- modelo_mai$confusion %>% diag
+
+sum(x) / sum(modelo_min$confusion[,-length(x)])
+sum(w) / sum(modelo_min$confusion[,-length(w)])
+
+y <- d_teste_mai %>%
+  group_by(letra, predicao) %>%
+  summarise(n = n()) %>%
+  ungroup %>%
+  spread(predicao, n, fill=0) %>% 
+  data.frame %>%
+  select(-letra) %>%
+  as.matrix 
+sum(diag(y)) / sum(y)
+
+z <- d_teste_min %>%  
+  group_by(letra, predicao) %>%  
+  summarise(n = n()) %>%  
+  ungroup %>%  
+  spread(predicao, n, fill=0) %>% 
+  data.frame %>%
+  select(-letra) %>%
+  as.matrix 
+sum(diag(z)) / sum(z)
 
 d <- ler(baixar())
 teste <- carregar_teste(d)
 nm <- names(select(d_treino, -arq, -letra))
 teste[, nm[!nm %in% names(teste)]] <- 0
-
-predicao <- predict(modelo_mai, d_teste_mai, type = "class")
 
 r <- paste0(predicao, collapse = "")
 r
@@ -91,6 +123,17 @@ desenhar(d)
 ### Prever!
 
 ```{r}
-d <- ler("arq.png"); desenhar(d); prever(d)
+set.seed(123)
+d_min <- carregar_treino('C:/Users/Athos/Downloads/treino/minusculo/')
+d_min$letra <- as.factor(d_min$letra)
+linhas_treino <- sample(nrow(d_min), 0.8*nrow(d_min))
+d_treino_min <- d_min[linhas_treino,]
+d_teste_min <- d_min[-linhas_treino,]
+
+modelo_min <- modelo_rf_min$finalModel
+h1 <- scale_x_continuous(breaks = 0:1000*2)
+h2 <- scale_y_continuous(breaks = 0:1000)
+
+d <- ler(baixar()); desenhar(limpar(d)) + h1 + h2; prever(d, d_treino_min, modelo_min)
 ```
 
