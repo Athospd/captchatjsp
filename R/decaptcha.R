@@ -1,4 +1,9 @@
 #' @export
+is_windows <- function() {
+  stringr::str_detect( tolower(sessionInfo()$running), "windows")
+}
+
+#' @export
 baixar <- function() {
   link <- 'https://esaj.tjsp.jus.br/cjsg/imagemCaptcha.do'
   tmp <- tempfile()
@@ -33,15 +38,18 @@ limpar <- function(d) {
   d <- dplyr::group_by(d, x)
   d <- dplyr::mutate(d, n = length(y))
   d <- dplyr::ungroup(d)
-  d <- dplyr::filter(d, n > 2, y > 20, y < 38)
+  d <- dplyr::filter(d, y > 20, y < 38)
+
   d <- dplyr::group_by(d, cor)
   d <- dplyr::mutate(d, n = length(cor))
   d <- dplyr::ungroup(d)
   d <- dplyr::filter(d, n == max(n))
+
   d <- dplyr::group_by(d, x)
   d <- dplyr::mutate(d, n = length(y))
   d <- dplyr::ungroup(d)
   d <- dplyr::filter(d, n > 1)
+
   d
 }
 
@@ -77,7 +85,7 @@ desenhar <- function(d) {
   p <- p + ggplot2::theme_bw()
   if(!is.null(d$grupo)) {
     p <- p + ggplot2::geom_point()
-    p <- p + ggplot2::facet_wrap(~grupo, scales = 'free', ncol = 5)
+    p <- p + ggplot2::facet_wrap(~grupo, scales = 'free_y', ncol = 5)
   } else {
     p <- p + ggplot2::geom_point(colour = d$cor)
   }
@@ -106,7 +114,12 @@ carregar_treino <- function(path) {
       }
     })
   )
-  treino$letra <- stringr::str_match(treino$arq, '.+//([a-z])')[, 2]
+  if(is_windows()) { # se o sistema operacional for windows...
+    letra_regex <- '.+\\/([a-z])'
+  } else {
+    letra_regex <- '.+//([a-z])'
+  }
+  treino$letra <- stringr::str_match(treino$arq, letra_regex)[, 2]
   d_treino <- treino %>%
     group_by(arq) %>%
     mutate(x = x - min(x), y = y - min(y)) %>%
@@ -116,7 +129,8 @@ carregar_treino <- function(path) {
     select(arq, xy, letra) %>%
     spread(xy, letra, fill = 0) %>%
     mutate_each(funs(ifelse(.=='0', 0, 1)), starts_with('x')) %>%
-    mutate(letra = stringr::str_match(arq, '.+//([a-z])')[, 2])
+    mutate(letra = stringr::str_match(arq, letra_regex)[, 2])
+
   d_treino
 }
 

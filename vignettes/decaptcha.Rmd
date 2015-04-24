@@ -14,6 +14,7 @@ library(dplyr)
 library(tidyr)
 library(tree)
 library(captchatjsp)
+library(caret)
 ```
 
 ### Mostrando
@@ -28,21 +29,46 @@ desenhar(d)
 
 ### Atualizar modelo
 
+#### Base de treino
 ```{r}
 d_treino <- carregar_treino('inst/treino/')
 d_treino$letra <- as.factor(d_treino$letra)
-modelo <- tree(letra ~ ., data = select(d_treino, -arq))
-cv_tree <- cv.tree(modelo)
+```
+
+#### Tree
+```{r}
+modelo_tree <- tree(letra ~ ., data = select(d_treino, -arq))
+cv_tree <- cv.tree(modelo_tree)
 plot(cv_tree)
-modelo <- prune.tree(modelo, best = 25)
+modelo_tree <- prune.tree(modelo_tree, best = 25)
 save(d_treino, file = 'data/d_treino.rda')
-save(modelo, file = 'data/modelo.rda')
+save(modelo_tree, file = 'data/modelo.rda')
 devtools::document(); devtools::install()
+```
+
+#### Random Forest
+```{r}
+set.seed(19910401)
+modelo_rf <- train(letra ~ ., 
+                   data = select(d_treino, -arq),
+                   method = "rf",
+                   tuneLength = 6)
+
+plot(modelo_rf)
+modelo <- modelo_rf$finalModel
+save(modelo, file = 'data/modelo.rda')
+
+teste <- carregar_teste(d)
+nm <- names(select(d_treino, -arq, -letra))
+teste[, nm[!nm %in% names(teste)]] <- 0
+predicao <- predict(modelo, teste, type = "class")
+r <- paste0(predicao, collapse = "")
+r
 ```
 
 ### Prever!
 
 ```{r}
-d <- ler(baixar()); desenhar(d); prever(d)
+d <- ler("arq.png"); desenhar(d); prever(d)
 ```
 
